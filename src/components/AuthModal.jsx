@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Award } from 'lucide-react';
-import { setCurrentUser, addLiveFeedEvent } from '../utils/storage';
+import { ShieldAlert } from 'lucide-react';
 
 const GoogleIcon = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" {...props}>
@@ -24,18 +23,63 @@ const MOCK_AVATARS = [
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', // Grid runner
 ];
 
-export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
+export default function AuthModal({ isOpen, currentUser, onClose, onAuthSuccess }) {
   const [step, setStep] = useState(1); // 1: Select OAuth, 2: Setup Gamer Handle
   const [authType, setAuthType] = useState('');
   const [username, setUsername] = useState('');
   const [avatar, setAvatar] = useState(MOCK_AVATARS[0]);
   const [error, setError] = useState('');
 
+  // Simulated Connection loading states
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState([]);
+
+  // Auto-transition to Step 2 if user is logged in but not onboarded
+  React.useEffect(() => {
+    if (isOpen) {
+      if (currentUser && !currentUser.onboarded) {
+        const emailPrefix = currentUser.email ? currentUser.email.split('@')[0] : '';
+        const suggestedHandle = emailPrefix ? emailPrefix.replace(/[^a-zA-Z0-9_]/g, '_') : '';
+        
+        setTimeout(() => {
+          setStep(2);
+          setAuthType(currentUser.provider === 'google' ? 'Google' : 'GitHub');
+          setUsername(suggestedHandle);
+          setAvatar(currentUser.avatar || MOCK_AVATARS[0]);
+        }, 0);
+      } else {
+        setTimeout(() => {
+          setStep(1);
+          setError('');
+        }, 0);
+      }
+    }
+  }, [currentUser, isOpen]);
+
   if (!isOpen) return null;
 
   const handleOAuthClick = (type) => {
     setAuthType(type);
-    setStep(2);
+    setIsLoading(true);
+    setProgress(0);
+    setLogs([
+      `Initializing ${type} Secure Accounts Handshake...`,
+      'Contacting authorization gateway servers...',
+      'Redirecting to secure terminal authentication gateway...'
+    ]);
+
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += 34;
+      setProgress(Math.min(100, currentProgress));
+      if (currentProgress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          window.location.href = `/api/auth/${type.toLowerCase()}`;
+        }, 400);
+      }
+    }, 150);
   };
 
   const handleSetupProfile = (e) => {
@@ -49,108 +93,182 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       return;
     }
 
-    const newUser = {
-      id: username.toLowerCase().replace(/\s+/g, '_'),
-      username: username.trim(),
-      avatar: avatar,
-      level: 1,
-      xp: 0,
-      streak: 0,
-      winRate: 0,
-      badges: [],
-      history: []
-    };
+    setIsLoading(true);
+    setProgress(0);
+    setLogs([
+      'Securing gamer handle reservation...',
+      'Syncing stats and attributes index...',
+      'Saving onboarding configurations...'
+    ]);
 
-    setCurrentUser(newUser);
-    addLiveFeedEvent(`Player ${newUser.username} logged into the Cyber Arena`);
-    onAuthSuccess(newUser);
-    onClose();
+    fetch('/api/auth/onboard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.trim(),
+        avatar: avatar
+      })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Onboarding failed');
+        }
+        return res.json();
+      })
+      .then((updatedUser) => {
+        setProgress(100);
+        setTimeout(() => {
+          setIsLoading(false);
+          onAuthSuccess(updatedUser);
+          onClose();
+        }, 500);
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        setError(err.message);
+      });
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.5rem', color: '#fff' }}>
-          {step === 1 ? 'CONNECT YOUR ACCOUNT' : 'SECURE YOUR BADGE'}
-        </h2>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '2rem' }}>
-          {step === 1 ? 'Select a terminal gateway to login to the battlegrounds.' : 'Register your developer alias and gaming profile picture.'}
-        </p>
+      <div className="modal-content" style={{ borderColor: isLoading ? 'var(--color-blue)' : '' }}>
+        
+        {isLoading ? (
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--color-blue)', textShadow: '0 0 10px var(--color-blue-glow)' }}>
+              CONNECTING GATEWAY
+            </h2>
+            
+            {/* Simulated Progress Loader */}
+            <div style={{ position: 'relative', height: '24px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+              <div 
+                style={{ 
+                  height: '100%', 
+                  width: `${progress}%`, 
+                  background: 'linear-gradient(90deg, var(--color-blue), var(--color-purple))', 
+                  transition: 'width 0.3s ease-out' 
+                }} 
+              />
+              <span style={{ position: 'absolute', top: '1px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.75rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}>
+                {progress}%
+              </span>
+            </div>
 
-        {step === 1 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <button className="btn-cyber secondary" style={{ width: '100%', gap: '0.75rem' }} onClick={() => handleOAuthClick('Google')}>
-              <GoogleIcon />
-              <span>Login with Google</span>
-            </button>
-            <button className="btn-cyber secondary" style={{ width: '100%', gap: '0.75rem' }} onClick={() => handleOAuthClick('GitHub')}>
-              <GitHubIcon />
-              <span>Login with GitHub</span>
-            </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '1.5rem', paddingTop: '1rem' }}>
-              <button 
-                onClick={onClose} 
-                style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
-              >
-                Spectate for now
-              </button>
+            {/* Simulated Log Output Console */}
+            <div 
+              style={{ 
+                background: '#000', 
+                border: '1px solid rgba(255,255,255,0.05)', 
+                borderRadius: '8px', 
+                padding: '1rem', 
+                textAlign: 'left', 
+                fontFamily: 'monospace', 
+                fontSize: '0.75rem', 
+                height: '150px', 
+                overflowY: 'auto',
+                color: 'var(--color-green)'
+              }}
+            >
+              {logs.map((log, index) => (
+                <div key={index} style={{ marginBottom: '0.4rem', animation: 'slideUp 0.2s ease-out' }}>
+                  <span style={{ color: 'var(--color-purple)' }}>&gt;</span> {log}
+                </div>
+              ))}
+              <div style={{ color: '#fff', animation: 'glowPulse 2s infinite' }}>█</div>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSetupProfile}>
-            <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.25rem' }}>
-              <label className="form-label">Player Handle</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="e.g. NeoCoder_42" 
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                maxLength={16}
-                required
-              />
-            </div>
+          <>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.5rem', color: '#fff' }}>
+              {step === 1 ? 'CONNECT YOUR ACCOUNT' : 'SECURE YOUR BADGE'}
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '2rem' }}>
+              {step === 1 ? 'Select a terminal gateway to login to the battlegrounds.' : 'Register your developer alias and gaming profile picture.'}
+            </p>
 
-            <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-              <label className="form-label">Choose Avatar</label>
-              <div className="avatar-selector">
-                {MOCK_AVATARS.map((avUrl, i) => (
-                  <img 
-                    key={i} 
-                    src={avUrl} 
-                    alt={`Avatar option ${i}`}
-                    className={`avatar-opt ${avatar === avUrl ? 'selected' : ''}`}
-                    onClick={() => setAvatar(avUrl)}
+            {step === 1 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button className="btn-cyber secondary" style={{ width: '100%', gap: '0.75rem' }} onClick={() => handleOAuthClick('Google')}>
+                  <GoogleIcon />
+                  <span>Login with Google</span>
+                </button>
+                <button className="btn-cyber secondary" style={{ width: '100%', gap: '0.75rem' }} onClick={() => handleOAuthClick('GitHub')}>
+                  <GitHubIcon />
+                  <span>Login with GitHub</span>
+                </button>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '1.5rem', paddingTop: '1rem' }}>
+                  <button 
+                    onClick={onClose} 
+                    style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                  >
+                    Spectate for now
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSetupProfile}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px', marginBottom: '1.5rem', fontSize: '0.75rem', color: 'var(--color-green)' }}>
+                  <span>Verified Auth Connection via {authType}</span>
+                </div>
+                
+                <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.25rem' }}>
+                  <label className="form-label">Player Handle</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g. NeoCoder_42" 
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                    maxLength={16}
+                    required
                   />
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {error && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-red)', fontSize: '0.8rem', marginBottom: '1rem' }}>
-                <ShieldAlert size={14} />
-                <span>{error}</span>
-              </div>
+                <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <label className="form-label">Choose Avatar</label>
+                  <div className="avatar-selector">
+                    {MOCK_AVATARS.map((avUrl, i) => (
+                      <img 
+                        key={i} 
+                        src={avUrl} 
+                        alt={`Avatar option ${i}`}
+                        className={`avatar-opt ${avatar === avUrl ? 'selected' : ''}`}
+                        onClick={() => setAvatar(avUrl)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {error && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-red)', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                    <ShieldAlert size={14} />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button 
+                    type="button" 
+                    className="btn-cyber secondary" 
+                    style={{ flex: 1, padding: '0.5rem 1rem' }} 
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-cyber" 
+                    style={{ flex: 2, padding: '0.5rem 1rem' }}
+                  >
+                    ENTER ARENA
+                  </button>
+                </div>
+              </form>
             )}
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button 
-                type="button" 
-                className="btn-cyber secondary" 
-                style={{ flex: 1, padding: '0.5rem 1rem' }} 
-                onClick={() => setStep(1)}
-              >
-                Back
-              </button>
-              <button 
-                type="submit" 
-                className="btn-cyber" 
-                style={{ flex: 2, padding: '0.5rem 1rem' }}
-              >
-                ENTER ARENA
-              </button>
-            </div>
-          </form>
+          </>
         )}
       </div>
     </div>

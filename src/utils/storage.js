@@ -1,250 +1,4 @@
-// LocalStorage keys
-const STORAGE_KEYS = {
-  PLAYERS: 'skillbattle_players',
-  CURRENT_USER: 'skillbattle_curr_user',
-  SUBMISSIONS: 'skillbattle_submissions',
-  BATTLE_REGISTERED: 'skillbattle_registered',
-  LIVE_FEED: 'skillbattle_live_feed',
-};
-
-// Initial Mock Players Seeding
-const DEFAULT_PLAYERS = [
-  {
-    id: 'hemanshi',
-    username: 'Hemanshi',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    level: 5,
-    xp: 1200,
-    streak: 4,
-    winRate: 85,
-    badges: ['Weekend Warrior', 'Champion', 'Winning Streak', 'Top 10 Builder', 'Battle Veteran'],
-    history: [
-      { id: 'b1', title: 'Cyber Glow Landing', rank: 1, xp: 120 },
-      { id: 'b2', title: 'Arc Browser Mockup', rank: 2, xp: 70 },
-      { id: 'b3', title: 'Discord Overlay Hack', rank: 1, xp: 120 },
-    ]
-  },
-  {
-    id: 'priya',
-    username: 'Priya',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    level: 4,
-    xp: 750,
-    streak: 2,
-    winRate: 60,
-    badges: ['Weekend Warrior', 'Top 10 Builder', 'Battle Veteran'],
-    history: [
-      { id: 'b1', title: 'Cyber Glow Landing', rank: 4, xp: 25 },
-      { id: 'b2', title: 'Arc Browser Mockup', rank: 1, xp: 120 },
-    ]
-  },
-  {
-    id: 'rahul',
-    username: 'Rahul',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    level: 3,
-    xp: 450,
-    streak: 1,
-    winRate: 40,
-    badges: ['Weekend Warrior', 'First Battle'],
-    history: [
-      { id: 'b2', title: 'Arc Browser Mockup', rank: 7, xp: 25 },
-    ]
-  },
-  {
-    id: 'alex_cyber',
-    username: 'AlexCyber',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    level: 2,
-    xp: 180,
-    streak: 0,
-    winRate: 20,
-    badges: ['Weekend Warrior'],
-    history: [
-      { id: 'b1', title: 'Cyber Glow Landing', rank: 12, xp: 5 },
-    ]
-  }
-];
-
-const DEFAULT_SUBMISSIONS = [
-  {
-    id: 'sub_priya',
-    username: 'Priya',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    githubUrl: 'https://github.com/priya/cyber-card-battle',
-    liveUrl: 'https://cyber-card-battle.vercel.app',
-    description: 'A 3D perspective battle card with hovering neon swords and particle blast effects upon activation. Fully styled in vanilla CSS.',
-    votes: 8,
-    battleId: 'current'
-  },
-  {
-    id: 'sub_rahul',
-    username: 'Rahul',
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    githubUrl: 'https://github.com/rahul/cyberpunk-profile',
-    liveUrl: 'https://cyberpunk-profile.netlify.app',
-    description: 'Clean glassmorphic profile widget. Has toggleable character stat cards and glowing levels. Focuses on minimal typography.',
-    votes: 4,
-    battleId: 'current'
-  },
-  {
-    id: 'sub_alex',
-    username: 'AlexCyber',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    githubUrl: 'https://github.com/alex/neon-esports-card',
-    liveUrl: 'https://neon-esports-card.surge.sh',
-    description: 'Simple responsive card with heavy neon glows and custom font headers.',
-    votes: 2,
-    battleId: 'current'
-  }
-];
-
-const DEFAULT_FEED = [
-  { time: '10 mins ago', message: 'Rahul registered for the Battle' },
-  { time: '18 mins ago', message: 'Priya submitted project "3D Perspective Battle Card"' },
-  { time: '25 mins ago', message: 'AlexCyber joined the preparation lobby' },
-  { time: '40 mins ago', message: 'Hemanshi earned badge "Winning Streak"' },
-  { time: '1 hr ago', message: 'Battle registration opened!' }
-];
-
-export const initStorage = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.PLAYERS)) {
-    localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEFAULT_PLAYERS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.SUBMISSIONS)) {
-    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(DEFAULT_SUBMISSIONS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.LIVE_FEED)) {
-    localStorage.setItem(STORAGE_KEYS.LIVE_FEED, JSON.stringify(DEFAULT_FEED));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.BATTLE_REGISTERED)) {
-    localStorage.setItem(STORAGE_KEYS.BATTLE_REGISTERED, JSON.stringify(['priya', 'rahul', 'alex_cyber']));
-  }
-};
-
-// Player CRUD
-export const getPlayers = () => {
-  initStorage();
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYERS) || '[]');
-};
-
-export const savePlayers = (players) => {
-  localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-};
-
-export const getCurrentUser = () => {
-  const user = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  return user ? JSON.parse(user) : null;
-};
-
-export const setCurrentUser = (user) => {
-  if (user) {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-    // Also save in players array
-    const players = getPlayers();
-    const index = players.findIndex(p => p.username.toLowerCase() === user.username.toLowerCase());
-    if (index > -1) {
-      players[index] = { ...players[index], ...user };
-    } else {
-      players.push(user);
-    }
-    savePlayers(players);
-  } else {
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-  }
-};
-
-// Battle registration
-export const getRegisteredPlayers = () => {
-  initStorage();
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.BATTLE_REGISTERED) || '[]');
-};
-
-export const registerPlayerForBattle = (userId) => {
-  const registered = getRegisteredPlayers();
-  if (!registered.includes(userId)) {
-    registered.push(userId);
-    localStorage.setItem(STORAGE_KEYS.BATTLE_REGISTERED, JSON.stringify(registered));
-    
-    // Add XP & Log Activity
-    addXPToUser(userId, 5, 'Registration bonus (+5 XP)');
-    addLiveFeedEvent(`${userId === 'current_user' ? 'You' : userId} registered for the weekend battle!`);
-  }
-};
-
-// Submissions
-export const getSubmissions = () => {
-  initStorage();
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBMISSIONS) || '[]');
-};
-
-export const addSubmission = (username, avatar, githubUrl, liveUrl, description) => {
-  const submissions = getSubmissions();
-  
-  // Check if already submitted
-  const existingIndex = submissions.findIndex(s => s.username === username);
-  
-  const newSub = {
-    id: existingIndex > -1 ? submissions[existingIndex].id : 'sub_' + Math.random().toString(36).substr(2, 9),
-    username,
-    avatar,
-    githubUrl,
-    liveUrl,
-    description,
-    votes: existingIndex > -1 ? submissions[existingIndex].votes : 0,
-    battleId: 'current'
-  };
-
-  if (existingIndex > -1) {
-    submissions[existingIndex] = newSub;
-  } else {
-    submissions.push(newSub);
-    // Award +20 XP to User
-    addXPToUserByUsername(username, 20, 'Submission bonus (+20 XP)');
-    unlockBadgeByUsername(username, 'First Battle');
-    unlockBadgeByUsername(username, 'Weekend Warrior');
-  }
-
-  localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
-  addLiveFeedEvent(`${username} submitted project: "${description.substring(0, 30)}..."`);
-  return newSub;
-};
-
-// Community Voting
-export const voteForSubmission = (subId, voterUsername) => {
-  const submissions = getSubmissions();
-  const subIndex = submissions.findIndex(s => s.id === subId);
-  
-  if (subIndex > -1) {
-    // Check self-voting
-    if (submissions[subIndex].username === voterUsername) {
-      return { success: false, error: 'Self-voting is not allowed' };
-    }
-    
-    submissions[subIndex].votes += 1;
-    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(submissions));
-    addLiveFeedEvent(`Anonymous vote cast for project by ${submissions[subIndex].username}`);
-    return { success: true, newVotes: submissions[subIndex].votes };
-  }
-  return { success: false, error: 'Submission not found' };
-};
-
-// Dynamic Feed
-export const getLiveFeed = () => {
-  initStorage();
-  return JSON.parse(localStorage.getItem(STORAGE_KEYS.LIVE_FEED) || '[]');
-};
-
-export const addLiveFeedEvent = (message) => {
-  const feed = getLiveFeed();
-  feed.unshift({
-    time: 'Just now',
-    message
-  });
-  localStorage.setItem(STORAGE_KEYS.LIVE_FEED, JSON.stringify(feed.slice(0, 30)));
-};
-
-// Level and Badge Engine helpers
+// Level and Badge Engine mapping data
 const XP_LEVEL_MAP = [
   { level: 1, name: 'Rookie', xpRequired: 0 },
   { level: 2, name: 'Builder', xpRequired: 100 },
@@ -267,125 +21,182 @@ export const getXpRangeForLevel = (level) => {
   return { min: current.xpRequired, max: next.xpRequired };
 };
 
-export const addXPToUserByUsername = (username, amount, reason) => {
-  const players = getPlayers();
-  const index = players.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
-  
-  if (index > -1) {
-    const player = players[index];
-    const prevXP = player.xp;
-    player.xp += amount;
-    
-    // Check Level Up
-    let newLevel = player.level;
-    for (let i = XP_LEVEL_MAP.length - 1; i >= 0; i--) {
-      if (player.xp >= XP_LEVEL_MAP[i].xpRequired) {
-        newLevel = XP_LEVEL_MAP[i].level;
-        break;
-      }
-    }
-    
-    let leveledUp = false;
-    if (newLevel > player.level) {
-      player.level = newLevel;
-      leveledUp = true;
-    }
-    
-    players[index] = player;
-    savePlayers(players);
-    
-    // If it is the current logged-in user, sync current user state too
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.username.toLowerCase() === username.toLowerCase()) {
-      currentUser.xp = player.xp;
-      currentUser.level = player.level;
-      setCurrentUser(currentUser);
-      
-      // Return details for trigger notification
-      return { amount, reason, leveledUp, levelName: getLevelName(newLevel), level: newLevel };
-    }
-  }
-  return null;
+// Initialize Storage Databases (Stub for client-side setup consistency)
+export const initStorage = () => {
+  // Backend manages seeding now. No-op.
 };
 
-export const addXPToUser = (userId, amount, reason) => {
-  const user = getCurrentUser();
-  if (user) {
-    return addXPToUserByUsername(user.username, amount, reason);
+// Fetch current user from JWT cookie session
+export const getCurrentUser = async () => {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.status === 200) {
+      return await res.json();
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to get current user session:', err);
+    return null;
   }
-  return null;
 };
 
-export const unlockBadgeByUsername = (username, badgeName) => {
-  const players = getPlayers();
-  const index = players.findIndex(p => p.username.toLowerCase() === username.toLowerCase());
-  
-  if (index > -1) {
-    const player = players[index];
-    if (!player.badges) player.badges = [];
-    
-    if (!player.badges.includes(badgeName)) {
-      player.badges.push(badgeName);
-      players[index] = player;
-      savePlayers(players);
-      
-      const currentUser = getCurrentUser();
-      if (currentUser && currentUser.username.toLowerCase() === username.toLowerCase()) {
-        currentUser.badges = player.badges;
-        setCurrentUser(currentUser);
-        return { badgeName, unlocked: true };
-      }
-    }
-  }
-  return null;
+// No-op for direct storage. Server sets cookie now.
+export const setCurrentUser = () => {
+  // Cookie handles session persistence.
 };
 
-export const unlockBadge = (badgeName) => {
-  const user = getCurrentUser();
-  if (user) {
-    return unlockBadgeByUsername(user.username, badgeName);
+// Fetch all registered players
+export const getPlayers = async () => {
+  try {
+    const res = await fetch('/api/players');
+    if (!res.ok) throw new Error('Failed to fetch players');
+    return await res.json();
+  } catch (err) {
+    console.error('Error fetching players from backend:', err);
+    return [];
   }
-  return null;
 };
 
-// End of Battle results evaluation simulation
-export const processBattleEndResults = () => {
-  const submissions = getSubmissions().sort((a,b) => b.votes - a.votes);
-  if (submissions.length === 0) return;
-  
-  // Rank 1: Winner
-  const winner = submissions[0];
-  const winnerReward = addXPToUserByUsername(winner.username, 100, 'Battle Winner (+100 XP)');
-  unlockBadgeByUsername(winner.username, 'Champion');
-  addLiveFeedEvent(`🏆 ${winner.username} won the Weekend Battle!`);
-
-  // Top 10 gets +50 XP
-  submissions.slice(0, 10).forEach((sub, rankIndex) => {
-    addXPToUserByUsername(sub.username, 50, 'Top 10 Battle Bonus (+50 XP)');
-    unlockBadgeByUsername(sub.username, 'Top 10 Builder');
-    
-    // Add to history
-    const players = getPlayers();
-    const pIdx = players.findIndex(p => p.username === sub.username);
-    if (pIdx > -1) {
-      if (!players[pIdx].history) players[pIdx].history = [];
-      players[pIdx].history.unshift({
-        id: 'battle_' + Date.now(),
-        title: 'Cyber Arena Card Showdown',
-        rank: rankIndex + 1,
-        xp: rankIndex === 0 ? 100 + 50 + 20 : 50 + 20
-      });
-      savePlayers(players);
-    }
-  });
-
-  // Re-sync current user if they participated
-  const currUser = getCurrentUser();
-  if (currUser) {
-    const players = getPlayers();
-    const updatedMe = players.find(p => p.username === currUser.username);
-    if (updatedMe) {
-      setCurrentUser(updatedMe);
-    }
+// Fetch registered player IDs for battle enlisting
+export const getRegisteredPlayers = async () => {
+  try {
+    const res = await fetch('/api/registered');
+    if (!res.ok) throw new Error('Failed to fetch registered list');
+    return await res.json();
+  } catch (err) {
+    console.error('Error fetching enlists:', err);
+    return [];
   }
+};
+
+// Enlist player for battle
+export const registerPlayerForBattle = async () => {
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Failed to register');
+    }
+    const data = await res.json();
+    return data.registered;
+  } catch (err) {
+    console.error('Error enlisting player:', err);
+    throw err;
+  }
+};
+
+// Fetch all battle submissions
+export const getSubmissions = async () => {
+  try {
+    const res = await fetch('/api/submissions');
+    if (!res.ok) throw new Error('Failed to fetch submissions');
+    return await res.json();
+  } catch (err) {
+    console.error('Error fetching submissions:', err);
+    return [];
+  }
+};
+
+// Add / Update project submission
+export const addSubmission = async (username, avatar, githubUrl, liveUrl, description) => {
+  try {
+    const res = await fetch('/api/submissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ githubUrl, liveUrl, description })
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'Failed to submit project');
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Error creating submission:', err);
+    throw err;
+  }
+};
+
+// Vote for a project submission
+export const voteForSubmission = async (subId) => {
+  try {
+    const res = await fetch(`/api/submissions/${subId}/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      return { success: false, error: errData.error || 'Failed to vote' };
+    }
+    const data = await res.json();
+    return { success: true, newVotes: data.newVotes };
+  } catch (err) {
+    console.error('Error casting vote:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+// Fetch activity feed logs
+export const getLiveFeed = async () => {
+  try {
+    const res = await fetch('/api/feed');
+    if (!res.ok) throw new Error('Failed to fetch live feed');
+    return await res.json();
+  } catch (err) {
+    console.error('Error fetching feed:', err);
+    return [];
+  }
+};
+
+// Add simulated feed activity
+export const addLiveFeedEvent = async (message) => {
+  try {
+    const res = await fetch('/api/feed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    if (!res.ok) throw new Error('Failed to post live event');
+    return await res.json();
+  } catch (err) {
+    console.error('Error adding activity log:', err);
+    return [];
+  }
+};
+
+// Fetch current active phase
+export const getPhase = async () => {
+  try {
+    const res = await fetch('/api/phase');
+    if (!res.ok) throw new Error('Failed to fetch system phase');
+    const data = await res.json();
+    return data.phase;
+  } catch (err) {
+    console.error('Error getting phase:', err);
+    return 'registration';
+  }
+};
+
+// Update active system phase (also handles results computation on results shift)
+export const setPhase = async (phase) => {
+  try {
+    const res = await fetch('/api/phase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase })
+    });
+    if (!res.ok) throw new Error('Failed to update phase');
+    const data = await res.json();
+    return data.phase;
+  } catch (err) {
+    console.error('Error setting phase:', err);
+    return phase;
+  }
+};
+
+// Stub for battle end results called by frontend
+export const processBattleEndResults = async () => {
+  // Backend processes battle end logic automatically when transitioning phase to 'results'
 };

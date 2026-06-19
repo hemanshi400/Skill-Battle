@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Clock, ShieldCheck, Check, Send, AlertTriangle, Play, HelpCircle, Lock, Award, Heart, ExternalLink, Code } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Clock, ShieldCheck, Check, Send, AlertTriangle, HelpCircle, Lock, Heart, ExternalLink, Code } from 'lucide-react';
 import { 
   getRegisteredPlayers, 
   registerPlayerForBattle, 
   getSubmissions, 
   addSubmission, 
   voteForSubmission, 
-  getLiveFeed, 
-  addLiveFeedEvent,
-  processBattleEndResults,
-  getPlayers
+  getLiveFeed
 } from '../utils/storage';
 
 export default function BattlesPage({ currentUser, currentPhase, triggerNotification, onOpenAuth }) {
@@ -31,21 +28,25 @@ export default function BattlesPage({ currentUser, currentPhase, triggerNotifica
 
   // Sync databases
   useEffect(() => {
-    setRegistered(getRegisteredPlayers());
-    setSubmissions(getSubmissions());
-    setLiveFeed(getLiveFeed());
+    getRegisteredPlayers().then(setRegistered);
+    getSubmissions().then(setSubmissions);
+    getLiveFeed().then(setLiveFeed);
   }, [currentPhase]);
 
   // Saturday Battle Timer Countdown
   useEffect(() => {
-    let interval = null;
-    if (currentPhase === 'battle' && secondsLeft > 0) {
-      interval = setInterval(() => {
-        setSecondsLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (currentPhase !== 'battle') {
-      setSecondsLeft(3600); // reset if phase changes
+    if (currentPhase !== 'battle') {
+      setTimeout(() => setSecondsLeft(3600), 0); // reset if phase changes
     }
+  }, [currentPhase]);
+
+  useEffect(() => {
+    if (currentPhase !== 'battle') return;
+    if (secondsLeft <= 0) return;
+
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => prev - 1);
+    }, 1000);
     return () => clearInterval(interval);
   }, [currentPhase, secondsLeft]);
 
@@ -59,9 +60,9 @@ export default function BattlesPage({ currentUser, currentPhase, triggerNotifica
   // Periodically refresh the simulated feed to feel alive
   useEffect(() => {
     const handleStorageUpdate = () => {
-      setLiveFeed(getLiveFeed());
-      setSubmissions(getSubmissions());
-      setRegistered(getRegisteredPlayers());
+      getLiveFeed().then(setLiveFeed);
+      getSubmissions().then(setSubmissions);
+      getRegisteredPlayers().then(setRegistered);
     };
     
     // Check local storage for changes every 2.5 seconds
@@ -81,48 +82,63 @@ export default function BattlesPage({ currentUser, currentPhase, triggerNotifica
       onOpenAuth();
       return;
     }
-    registerPlayerForBattle('current_user');
-    setRegistered(getRegisteredPlayers());
-    triggerNotification('⚔️ REGISTERED!', 'You successfully joined Battle #12. +5 XP gained.', 'xp');
+    registerPlayerForBattle()
+      .then(updatedList => {
+        setRegistered(updatedList);
+        triggerNotification('⚔️ REGISTERED!', 'You successfully joined Battle #12. +5 XP gained.', 'xp');
+      })
+      .catch(err => {
+        console.error('Failed to enlist for battle:', err);
+      });
   };
 
   const handleSubmitProject = (e) => {
     e.preventDefault();
     if (!githubUrl || !liveUrl || !description) return;
     
-    const sub = addSubmission(
+    addSubmission(
       currentUser.username,
       currentUser.avatar,
       githubUrl,
       liveUrl,
       description
-    );
-    setUserSubmission(sub);
-    setSubmissions(getSubmissions());
-    triggerNotification('🚀 PUSHED TO LOBBY!', 'Project submitted successfully! +20 XP awarded.', 'xp');
-    
-    // Unlock Weekend Warrior & First Battle badge potentially
-    if (!currentUser.badges.includes('First Battle')) {
-      setTimeout(() => {
-        triggerNotification('🏆 BADGE UNLOCKED!', 'Earned badge: "First Battle".', 'badge');
-      }, 1500);
-    }
+    )
+      .then(sub => {
+        setUserSubmission(sub);
+        getSubmissions().then(setSubmissions);
+        triggerNotification('🚀 PUSHED TO LOBBY!', 'Project submitted successfully! +20 XP awarded.', 'xp');
+        
+        // Unlock Weekend Warrior & First Battle badge potentially
+        if (!currentUser.badges.includes('First Battle')) {
+          setTimeout(() => {
+            triggerNotification('🏆 BADGE UNLOCKED!', 'Earned badge: "First Battle".', 'badge');
+          }, 1500);
+        }
+      })
+      .catch(err => {
+        alert(err.message);
+      });
   };
 
-  const handleVote = (subId, authorUsername) => {
+  const handleVote = (subId) => {
     if (!currentUser) {
       onOpenAuth();
       return;
     }
     
-    const res = voteForSubmission(subId, currentUser.username);
-    if (res.success) {
-      setVotedIds([...votedIds, subId]);
-      setSubmissions(getSubmissions());
-      triggerNotification('❤️ VOTE CAST!', `Voted for Project successfully.`, 'xp');
-    } else {
-      alert(res.error);
-    }
+    voteForSubmission(subId)
+      .then(res => {
+        if (res.success) {
+          setVotedIds([...votedIds, subId]);
+          getSubmissions().then(setSubmissions);
+          triggerNotification('❤️ VOTE CAST!', `Voted for Project successfully.`, 'xp');
+        } else {
+          alert(res.error);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to vote:', err);
+      });
   };
 
   // Check if current user is registered
@@ -131,8 +147,7 @@ export default function BattlesPage({ currentUser, currentPhase, triggerNotifica
   // Trigger processing rewards on phase results
   useEffect(() => {
     if (currentPhase === 'results') {
-      processBattleEndResults();
-      setSubmissions(getSubmissions());
+      getSubmissions().then(setSubmissions);
     }
   }, [currentPhase]);
 

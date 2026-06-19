@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Settings, ArrowRight, Activity, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Activity, Zap } from 'lucide-react';
 import { addLiveFeedEvent } from '../utils/storage';
 
 const PHASES = [

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sword, Home, Trophy, User, LogIn, LogOut, Award, Star } from 'lucide-react';
-import { getCurrentUser, setCurrentUser, addLiveFeedEvent, initStorage } from './utils/storage';
+import { getCurrentUser, addLiveFeedEvent, initStorage, getPhase, setPhase } from './utils/storage';
 import LandingPage from './components/LandingPage';
 import BattlesPage from './components/BattlesPage';
 import LeaderboardPage from './components/LeaderboardPage';
@@ -15,29 +15,6 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-  // Initialize storage databases
-  useEffect(() => {
-    initStorage();
-    const user = getCurrentUser();
-    if (user) {
-      setGamerUser(user);
-    }
-  }, []);
-
-  // Sync state changes on local storage
-  const syncUser = (user) => {
-    setGamerUser(user);
-  };
-
-  const handleLogout = () => {
-    if (currentUser) {
-      addLiveFeedEvent(`Player ${currentUser.username} exited the lobby`);
-      setCurrentUser(null);
-      setGamerUser(null);
-      triggerNotification('LOBBY EXIT', 'You logged out of the Cyber Arena.', 'xp');
-    }
-  };
-
   // Toast / notification trigger
   const triggerNotification = (title, desc, type = 'xp') => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -47,6 +24,62 @@ export default function App() {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
+  };
+
+  // Fetch authentication status, query params, and system phase on mount
+  useEffect(() => {
+    initStorage();
+    
+    // Check URL parameters for successful redirect from OAuth
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth_success') === 'true') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      getCurrentUser().then(user => {
+        if (user) {
+          setGamerUser(user);
+          if (!user.onboarded) {
+            setIsAuthOpen(true);
+          } else {
+            triggerNotification('GATEWAY SECURED', `Welcome back, ${user.username}!`, 'xp');
+          }
+        }
+      });
+    } else {
+      getCurrentUser().then(user => {
+        if (user) {
+          setGamerUser(user);
+          if (!user.onboarded) {
+            setIsAuthOpen(true);
+          }
+        }
+      });
+    }
+
+    // Load active phase
+    getPhase().then(phase => {
+      if (phase) {
+        setCurrentPhase(phase);
+      }
+    });
+  }, []);
+
+  const syncUser = (user) => {
+    setGamerUser(user);
+  };
+
+  const handleLogout = () => {
+    if (currentUser) {
+      addLiveFeedEvent(`Player ${currentUser.username} exited the lobby`);
+      fetch('/api/auth/logout', { method: 'POST' })
+        .then(() => {
+          setGamerUser(null);
+          triggerNotification('LOBBY EXIT', 'You logged out of the Cyber Arena.', 'xp');
+        })
+        .catch(err => {
+          console.error('Logout request failed:', err);
+          setGamerUser(null);
+        });
+    }
   };
 
   // Capture simulator feed events
@@ -236,7 +269,10 @@ export default function App() {
       {/* Floating simulator panel overlays */}
       <SimulatorPanel 
         currentPhase={currentPhase} 
-        onPhaseChange={setCurrentPhase} 
+        onPhaseChange={async (phase) => {
+          await setPhase(phase);
+          setCurrentPhase(phase);
+        }} 
         onTriggerFeedEvent={handleTriggerFeedEvent}
       />
 
@@ -262,6 +298,7 @@ export default function App() {
       {/* Authentic Connect Tag Modal */}
       <AuthModal 
         isOpen={isAuthOpen} 
+        currentUser={currentUser}
         onClose={() => setIsAuthOpen(false)} 
         onAuthSuccess={syncUser}
       />

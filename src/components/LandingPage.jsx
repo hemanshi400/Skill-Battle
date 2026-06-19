@@ -1,10 +1,19 @@
-import React from 'react';
-import { Shield, Users, Sword, Trophy, Zap, Clock, ArrowRight, MessageSquare } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, Sword, Trophy, Zap, Clock, MessageSquare } from 'lucide-react';
 import { getPlayers, getRegisteredPlayers } from '../utils/storage';
 
 export default function LandingPage({ currentUser, onNavigate, onOpenAuth }) {
-  const registeredCount = getRegisteredPlayers().length;
-  const players = getPlayers().slice(0, 3); // Get top 3 players
+  const [registeredCount, setRegisteredCount] = useState(0);
+  const [players, setPlayers] = useState([]);
+
+  useEffect(() => {
+    getRegisteredPlayers().then(list => {
+      if (list) setRegisteredCount(list.length);
+    });
+    getPlayers().then(list => {
+      if (list) setPlayers(list.slice(0, 3));
+    });
+  }, []);
 
   const handleCtaClick = () => {
     if (currentUser) {

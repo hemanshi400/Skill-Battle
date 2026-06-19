@@ -1,5 +1,4 @@
-import React from 'react';
-import { Award, Flame, Zap, Trophy, Shield, Calendar, ArrowRight, UserPlus, Sparkles } from 'lucide-react';
+import { Award, Flame, Shield, Calendar, Sparkles } from 'lucide-react';
 import { getLevelName, getXpRangeForLevel } from '../utils/storage';
 
 const ALL_BADGES = [

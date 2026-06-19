@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, Search, Flame, Award, ArrowUpRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Trophy, Search, Flame } from 'lucide-react';
 import { getPlayers } from '../utils/storage';
 
 export default function LeaderboardPage({ currentUser }) {
@@ -8,8 +8,12 @@ export default function LeaderboardPage({ currentUser }) {
 
   useEffect(() => {
     // Fetch and sort players by XP descending
-    const sorted = getPlayers().sort((a, b) => b.xp - a.xp);
-    setPlayers(sorted);
+    getPlayers().then(data => {
+      if (data) {
+        const sorted = data.sort((a, b) => b.xp - a.xp);
+        setPlayers(sorted);
+      }
+    });
   }, []);
 
   const filteredPlayers = players.filter(p => 
@@ -18,7 +22,7 @@ export default function LeaderboardPage({ currentUser }) {
 
   // Split top 3 for podium
   const podium = players.slice(0, 3);
-  const remaining = filteredPlayers.slice(3); // or if searching, search across all
+
 
   return (
     <div className="page-container">
