@@ -1,0 +1,125 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  username      String         @unique
+  fullName      String
+  avatarUrl     String
+  bio           String?
+  skills        String         // JSON array represented as string, e.g. '["React", "TypeScript"]'
+  githubUrl     String?
+  linkedinUrl   String?
+  portfolioUrl  String?
+  xp            Int            @default(0)
+  currentStreak Int            @default(0)
+  maxStreak     Int            @default(0)
+  role          String         @default("user") // "user" | "admin"
+  createdAt     DateTime       @default(now())
+  
+  registrations Registration[]
+  submissions   Submission[]
+  votes         Vote[]
+  badges        UserBadge[]
+  activityLogs  ActivityLog[]
+}
+
+model Battle {
+  id                  String         @id @default(uuid())
+  title               String
+  tagline             String
+  description         String         // Hidden/Prep content or prompt revealed during start
+  rules               String
+  requirements        String
+  guidelines          String
+  registrationStart   DateTime
+  registrationEnd     DateTime
+  startTime           DateTime
+  endTime             DateTime
+  status              String         // "upcoming" | "preparation" | "active" | "voting" | "completed"
+  createdAt           DateTime       @default(now())
+  
+  registrations       Registration[]
+  submissions         Submission[]
+  votes               Vote[]
+}
+
+model Registration {
+  id           String   @id @default(uuid())
+  userId       String
+  battleId     String
+  registeredAt DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  battle       Battle   @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, battleId])
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  userId      String
+  battleId    String
+  githubUrl   String
+  liveUrl     String?
+  description String
+  submittedAt DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  battle      Battle   @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  votes       Vote[]
+  
+  @@unique([userId, battleId])
+}
+
+model Vote {
+  id           String     @id @default(uuid())
+  voterId      String
+  submissionId String
+  battleId     String
+  createdAt    DateTime   @default(now())
+  
+  voter        User       @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  battle       Battle     @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  
+  @@unique([voterId, submissionId])
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String
+  icon        String
+  xpReward    Int
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, badgeId])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "register" | "submit" | "vote" | "badge_earned" | "rank_up"
+  content   String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
